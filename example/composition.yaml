@@ -1,0 +1,42 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: function-optional
+spec:
+  compositeTypeRef:
+    apiVersion: example.crossplane.io/v1
+    kind: XR
+  mode: Pipeline
+  pipeline:
+    - step: patch-and-transform
+      functionRef:
+        name: function-patch-and-transform
+      input:
+        apiVersion: pt.fn.crossplane.io/v1beta1
+        kind: Resources
+        resources:
+          - name: create-vm
+            base:
+              apiVersion: nop.crossplane.io/v1alpha1
+              kind: NopResource
+              spec:
+                forProvider:
+                  param1: a
+                  param2: b
+          - name: install-private-network
+            base:
+              apiVersion: nop.crossplane.io/v1alpha1
+              kind: NopResource
+            patches:
+            - type: FromCompositeFieldPath
+              fromFieldPath: "spec.parameters.privateNetworkId"
+              toFieldPath: "spec.forProvider.privateNetworkId"
+    - step: check-optionals
+      functionRef:
+        name: function-optional
+      input:
+        apiVersion: template.fn.crossplane.io/v1beta1
+        kind: Input
+        optionals:
+        - field: spec.parameters.privateNetworkId
+          resource: install-private-network
